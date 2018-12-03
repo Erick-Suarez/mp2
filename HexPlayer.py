@@ -117,7 +117,7 @@ class HexAgent:
         depth = 2
 
         for move in moves:
-            print(move)
+            #print(move)
             self.nextState(move, self.color)
             score = self.minValue(alpha, beta, depth)
             if score > bestScore:
@@ -381,7 +381,7 @@ def main(argv):
         # RED MOVES
         hexAgent.update_board(hexAgent.hexBoard, c_pos, VALUE_RED)
         if arg_debug:
-            hexAgent.print_board(hexAgent.hexBoard)
+            hexAgent.print_board()
 
         if hexAgent.color==VALUE_BLUE:
             # BLUE playes
@@ -397,7 +397,7 @@ def main(argv):
         # BLUE MOVES
         hexAgent.update_board(hexAgent.hexBoard, c_pos, VALUE_BLUE)
         if arg_debug:
-            hexAgent.print_board(hexAgent.hexBoard)
+            hexAgent.print_board()
 
 
 if __name__=="__main__":
