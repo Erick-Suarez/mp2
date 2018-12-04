@@ -34,6 +34,8 @@ class HexAgent:
         self.boardSize = boardSize
         self.color = color
         self.playersMoves = []
+        self.firstMove = True
+        self.secondMove = False
 
     # ======================================================================================
     # Public Methods
@@ -109,18 +111,47 @@ class HexAgent:
         return d_available_pos[0]
 
     def minimax(self):
-        moves = self.getAvailableMoves(self.hexBoard)
+        # if(self.firstMove):
+        #     self.firstMove = False
+        #     self.secondMove = True
+        #     randVal = random.randint(0,self.boardSize-1)
+        #     if(self.color == VALUE_RED):
+        #         return (randVal, 0)
+        #     else:
+        #         if(self.hexBoard[0][randVal] != VALUE_EMPTY):
+        #             while(self.hexBoard[0][randVal] != VALUE_EMPTY):
+        #                 randVal = random.randint(0,self.boardSize-1)
+        #
+        #         return (0, randVal)
+        # elif(self.secondMove):
+        #     self.secondMove = False
+        #     randVal = random.randint(0,self.boardSize-1)
+        #     if(self.color == VALUE_RED):
+        #         if(self.hexBoard[randVal][self.boardSize-1] != VALUE_EMPTY):
+        #             while(self.hexBoard[randVal][self.boardSize-1] != VALUE_EMPTY):
+        #                 randVal = random.randint(0,self.boardSize-1)
+        #         return (randVal, self.boardSize-1)
+        #     else:
+        #         if(self.hexBoard[self.boardSize-1][randVal] != VALUE_EMPTY):
+        #             while(self.hexBoard[self.boardSize-1][randVal] != VALUE_EMPTY):
+        #                 randVal = random.randint(0,self.boardSize-1)
+        #         return (self.boardSize-1, randVal)
+        moves = []
+        if(self.firstMove):
+            self.firstMove = False
+            moves = self.getAvailableMoves(self.hexBoard)
+        else:
+            moves = self.getAdjacentMoves()
         bestMove = moves[0]
-        bestScore = float('-inf')
+        bestScore = float('inf')
         alpha = float('-inf')
         beta = float('inf')
         depth = 2
 
         for move in moves:
-            #print(move)
             self.nextState(move, self.color)
             score = self.minValue(alpha, beta, depth)
-            if score > bestScore:
+            if score < bestScore:
                 bestMove = move
                 bestScore = score
             self.revertState(move)
@@ -171,7 +202,7 @@ class HexAgent:
         if(depth == 0 or self.gameOver(self.hexBoard)):
             return self.heuristicValue(self.hexBoard)
 
-        moves = self.getAvailableMoves(self.hexBoard)
+        moves = self.getAdjacentMoves()
         bestScore = float('-inf')
 
         for move in moves:
@@ -192,7 +223,7 @@ class HexAgent:
         if(depth == 0 or self.gameOver(self.hexBoard)):
             return self.heuristicValue(self.hexBoard)
 
-        moves = self.getAvailableMoves(self.hexBoard)
+        moves = self.getAdjacentMoves()
         bestScore = float('inf')
 
         for move in moves:
@@ -214,12 +245,12 @@ class HexAgent:
         return bestScore
 
     def heuristicValue(self, currentState):
-        visitedPositions = {(-1,-1): True}
-        max = 0
+        visitedPositions = {}
+        value = 0
 
         for move in self.playersMoves:
             lowerLimit = self.boardSize
-            upperLimit = self.boardSize
+            upperLimit = 0
             numberOfConnectedNodes = 0
 
             if(self.color == VALUE_RED):
@@ -233,17 +264,13 @@ class HexAgent:
 
             distance = [lowerLimit, upperLimit, numberOfConnectedNodes]
             numberOfConnectedNodes += self.numberOfConnections(move, distance, visitedPositions)
-            #numberOfConnectedNodes += random.randint(1,101)
             lowerLimit = distance[0]
             upperLimit = distance[1]
             numberOfConnectedNodes = distance[2]
 
-            value = (self.boardSize-lowerLimit)*(self.boardSize-upperLimit)+numberOfConnectedNodes
-            if(value > max):
-                max = value
+            value += (self.boardSize-lowerLimit)*(self.boardSize-upperLimit)+numberOfConnectedNodes
 
-        return random.randint(1,101)
-        # return max
+        return value
 
     def numberOfConnections(self, move, distance, visitedPositions):
         i = move[0]
@@ -301,6 +328,30 @@ class HexAgent:
 
         return availableMoves
 
+    def getAdjacentMoves(self):
+        adjacentMoves = []
+        radius = 2
+        playersMoves = self.getPlayersMoves(self.hexBoard)
+        for playerMove in playersMoves:
+            for i in range(self.boardSize):
+                for j in range(self.boardSize):
+                    if self.hexBoard[i][j] == VALUE_EMPTY and self.inIRangeOf(i, playerMove, radius) and self.inJRangeOf(j, playerMove, radius):
+                        adjacentMoves.append((i,j))
+
+        return adjacentMoves
+
+    def inIRangeOf(self, i, playerMove, radius):
+        lowerLimit = playerMove[0] - radius
+        upperLimit = playerMove[0] + radius
+
+        return(lowerLimit <= i and i <= upperLimit)
+    def inJRangeOf(self, j, playerMove, radius):
+        lowerLimit = playerMove[1] - radius
+        upperLimit = playerMove[1] + radius
+
+        return(lowerLimit <= j and j <= upperLimit)
+
+
     def getPlayersMoves(self, currentState):
         playerMoves = []
 
@@ -324,10 +375,7 @@ class HexAgent:
             self.hexBoard[pi][pj] = VALUE_EMPTY
 
     def gameOver(self, currentState):
-        return (len(self.getAvailableMoves(currentState)) == 0) or self.someoneHasWon(currentState)
-
-    def someoneHasWon(self, currentState):
-        return False #TODO: STUB
+        return (len(self.getAvailableMoves(currentState)) == 0)
 
 def main(argv):
     try:
@@ -392,7 +440,7 @@ def main(argv):
             print(c_inp)
         else:
             # wait for opponent
-            c_inp = raw_input()
+            c_inp = input()
             c_pos = hexAgent.inp_to_pos(c_inp)
         # BLUE MOVES
         hexAgent.update_board(hexAgent.hexBoard, c_pos, VALUE_BLUE)

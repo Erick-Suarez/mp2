@@ -1,2 +1,2 @@
 #!/bin/bash
-python ./HexPlayer.py $@
+python3 ./HexPlayer.py $@
