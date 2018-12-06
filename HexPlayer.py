@@ -208,7 +208,6 @@ class HexAgent:
         visitedPositions = {}
         value = 0
         averagePosition = 1;
-
         for move in self.playersMoves:
 
             if move not in visitedPositions:
@@ -274,7 +273,7 @@ class HexAgent:
                 distance[1] = (j+1)
             connections += 1 + self.numberOfConnections((i,j+1), distance, visitedPositions, averagePosition)
         #node = (i+1, j-1)
-        if((j-1) >= 0 and (i+1) < self.boardSize and self.hexBoard[i+1][j-1] == self.color, averagePosition):
+        if(j-1 >= 0 and i+1 < self.boardSize and self.hexBoard[i+1][j-1] == self.color):
             if(self.color == VALUE_BLUE and (i+1) > distance[1]):
                 distance[1] = (i+1)
             if(self.color == VALUE_RED and (j-1) < distance[0]):
