@@ -123,18 +123,28 @@ class HexAgent:
         moves = []
         if(self.firstMove):
             self.firstMove = False
-            moves = self.getAvailableMoves(self.hexBoard)
+            if(self.hexBoard[self.boardSize//2][self.boardSize//2] == VALUE_EMPTY):
+                return (self.boardSize//2, self.boardSize//2)
+            else:
+                return(self.boardSize//2, self.boardSize//2 + 1)
+            if(self.color == VALUE_RED):
+                return (self.boardSize//2, 0)
+            else:
+                if(self.hexBoard[0][self.boardSize//2] == VALUE_EMPTY):
+                    return(0, self.boardSize//2)
+                else:
+                    return(0, 1+self.boardSize//2)
         else:
             moves = self.getAdjacentMoves()
         bestMove = moves[0]
         bestScore = float('inf')
         alpha = float('-inf')
         beta = float('inf')
-        depth = 3
+        depth = 2
 
         for move in moves:
             self.nextState(move, self.color)
-            score = self.minValue(alpha, beta, depth)
+            score = self.maxValue(alpha, beta, depth)
             if score < bestScore:
                 bestMove = move
                 bestScore = score
@@ -166,7 +176,10 @@ class HexAgent:
         bestScore = float('-inf')
 
         for move in moves:
-            self.nextState(move, self.color)
+            if(self.color == VALUE_RED):
+                self.nextState(move, VALUE_BLUE)
+            else:
+                self.nextState(move, VALUE_RED)
             score = self.minValue(alpha, beta, depth-1)
             if score > bestScore:
                 bestScore = score
@@ -187,10 +200,7 @@ class HexAgent:
         bestScore = float('inf')
 
         for move in moves:
-            if(self.color == VALUE_RED):
-                self.nextState(move, VALUE_BLUE)
-            else:
-                self.nextState(move, VALUE_RED)
+            self.nextState(move, self.color)
             score = self.maxValue(alpha, beta, depth-1)
 
             if score < bestScore:
@@ -206,80 +216,86 @@ class HexAgent:
 
     def heuristicValue(self, currentState):
         visitedPositions = {}
-        value = 0
-        for move in self.playersMoves:
+        value = 1
 
+        lowerLimit = 0
+        upperLimit = 0
+        
+        for move in self.playersMoves:
+            
             if move not in visitedPositions:
                 lowerLimit = 0
                 upperLimit = 0
                 numberOfConnectedNodes = 0
+                direction = 0
 
-                if(self.color == VALUE_RED):
+                if(self.color == VALUE_BLUE):
                     lowerLimit = move[0]
                     upperLimit = move[0]
                     numberOfConnectedNodes = 1
-
+                    direction = move[0]
                 else:
                     lowerLimit = move[1]
                     upperLimit = move[1]
                     numberOfConnectedNodes = 1
+                    direction = move[1]
 
                 distance = [lowerLimit, upperLimit, numberOfConnectedNodes]
+                
                 numberOfConnectedNodes += self.numberOfConnections(move, distance, visitedPositions)
+        
                 lowerLimit = distance[0]
                 upperLimit = distance[1]
                 numberOfConnectedNodes = distance[2]
-
-                value += (3*numberOfConnectedNodes) + (numberOfConnectedNodes * upperLimit + 1 * (1/(lowerLimit+1)))
+                
+                value += (3*numberOfConnectedNodes) * (self.boardSize/(((self.boardSize - direction)))) * (1/(lowerLimit+1))
+        #self.print_board()
+        #print(str(value))
+        value *=  ((upperLimit+1))
 
         return value
 
     def numberOfConnections(self, move, distance, visitedPositions):
         i = move[0]
         j = move[1]
-        connections = 0
+        connections = 1
         if(move in visitedPositions):
             return connections
-
-        if(self.color == VALUE_RED):
-            averagePosition += move[0]
-        else:
-            averagePosition += move[1]
 
         visitedPositions[move] = True
 
         #node = (i-1, j)
         if((i-1) >= 0 and self.hexBoard[i-1][j] == self.color):
-            if(self.color == VALUE_BLUE and i-1 < distance[0]):
+            if(self.color == VALUE_RED and i-1 < distance[0]):
                 distance[0] = i-1
             connections += 1 + self.numberOfConnections((i-1,j), distance, visitedPositions)
         #node = (i+1, j)
         if((i+1) < self.boardSize and self.hexBoard[i+1][j] == self.color):
-            if(self.color == VALUE_BLUE and (i+1) > distance[1]):
+            if(self.color == VALUE_RED and (i+1) > distance[1]):
                 distance[1] = (i+1)
             connections += 1 + self.numberOfConnections((i+1,j), distance, visitedPositions)
         #node = (i, j-1)
         if((j-1) >= 0 and self.hexBoard[i][j-1] == self.color):
-            if(self.color == VALUE_RED and j-1 < distance[0]):
+            if(self.color == VALUE_BLUE and j-1 < distance[0]):
                 distance[0] = j-1
             connections += 1 + self.numberOfConnections((i,j-1), distance, visitedPositions)
         #node = (i, j+1)
         if((j+1) < self.boardSize and self.hexBoard[i][j+1] == self.color):
-            if(self.color == VALUE_RED and (j+1) > distance[1]):
+            if(self.color == VALUE_BLUE and (j+1) > distance[1]):
                 distance[1] = (j+1)
             connections += 1 + self.numberOfConnections((i,j+1), distance, visitedPositions)
         #node = (i+1, j-1)
         if(j-1 >= 0 and i+1 < self.boardSize and self.hexBoard[i+1][j-1] == self.color):
-            if(self.color == VALUE_BLUE and (i+1) > distance[1]):
+            if(self.color == VALUE_RED and (i+1) > distance[1]):
                 distance[1] = (i+1)
-            if(self.color == VALUE_RED and (j-1) < distance[0]):
+            if(self.color == VALUE_BLUE and (j-1) < distance[0]):
                 distance[0] = j-1
             connections += 1 + self.numberOfConnections((i+1,j-1), distance, visitedPositions)
         #node = (i-1, j+1)
         if((j+1) < self.boardSize and (i-1) >= 0 and self.hexBoard[i-1][j+1] == self.color):
-            if(self.color == VALUE_BLUE and (i-1) < distance[0]):
+            if(self.color == VALUE_RED and (i-1) < distance[0]):
                 distance[0] = i-1
-            if(self.color == VALUE_RED and (j+1) > distance[0]):
+            if(self.color == VALUE_BLUE and (j+1) > distance[0]):
                 distance[1] = (j+1)
             connections += 1 + self.numberOfConnections((i-1,j+1), distance, visitedPositions)
 
@@ -303,10 +319,40 @@ class HexAgent:
             for i in range(self.boardSize):
                 for j in range(self.boardSize):
                     if self.hexBoard[i][j] == VALUE_EMPTY and self.inIRangeOf(i, playerMove, radius) and self.inJRangeOf(j, playerMove, radius):
+                        #if(self.deadOrVulnerableMove((i,j))):
                         adjacentMoves.append((i,j))
 
         return adjacentMoves
+    def deadOrVulnerableMove(self, move):
+        i = move[0]
+        j = move[1]
 
+        count = 0
+        if(self.check_pos((i-1, j))):
+            if(self.hexBoard[i-1][j] == VALUE_EMPTY):
+                count += 1
+        
+        if(self.check_pos((i+1, j))):
+            if(self.hexBoard[i+1][j] == VALUE_EMPTY):
+                count += 1
+
+        if(self.check_pos((i, j -1))):
+            if(self.hexBoard[i][j-1] == VALUE_EMPTY):
+                count += 1
+
+        if(self.check_pos((i, j+1))):
+            if(self.hexBoard[i][j+1] == VALUE_EMPTY):
+                count += 1
+
+        if(self.check_pos((i+1, j-1))):
+            if(self.hexBoard[i+1][j-1]):
+                count += 1
+
+        if(self.check_pos((i-1, j+1))):
+            if(self.hexBoard[i-1][j-1]):
+                count += 1
+
+        return count != 6
     def inIRangeOf(self, i, playerMove, radius):
         lowerLimit = playerMove[0] - radius
         upperLimit = playerMove[0] + radius
@@ -354,7 +400,7 @@ def main(argv):
 
     # default arguments
     arg_player = "RED"
-    arg_size = 11
+    arg_size = 7
     arg_debug = False
     for opt, arg in opts:
         if opt in ("-d","--debug"):
