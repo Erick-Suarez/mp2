@@ -207,7 +207,6 @@ class HexAgent:
     def heuristicValue(self, currentState):
         visitedPositions = {}
         value = 0
-        averagePosition = 1;
         for move in self.playersMoves:
 
             if move not in visitedPositions:
@@ -226,19 +225,16 @@ class HexAgent:
                     numberOfConnectedNodes = 1
 
                 distance = [lowerLimit, upperLimit, numberOfConnectedNodes]
-                numberOfConnectedNodes += self.numberOfConnections(move, distance, visitedPositions, averagePosition)
+                numberOfConnectedNodes += self.numberOfConnections(move, distance, visitedPositions)
                 lowerLimit = distance[0]
                 upperLimit = distance[1]
                 numberOfConnectedNodes = distance[2]
 
-                penalty = 2
-                if((averagePosition*1.0)/self.boardSize > ((1.0*self.boardSize)/2) + (1.0*self.boardSize)/3 or (averagePosition*1.0)/self.boardSize < ((1.0*self.boardSize)/2) - (1.0*self.boardSize)/3):
-                    penalty = 1.0/3
-                value += (3*numberOfConnectedNodes) + (numberOfConnectedNodes * upperLimit + 1 * (1/(lowerLimit+1)) * penalty)
+                value += (3*numberOfConnectedNodes) + (numberOfConnectedNodes * upperLimit + 1 * (1/(lowerLimit+1)))
 
         return value
 
-    def numberOfConnections(self, move, distance, visitedPositions, averagePosition):
+    def numberOfConnections(self, move, distance, visitedPositions):
         i = move[0]
         j = move[1]
         connections = 0
@@ -256,36 +252,36 @@ class HexAgent:
         if((i-1) >= 0 and self.hexBoard[i-1][j] == self.color):
             if(self.color == VALUE_BLUE and i-1 < distance[0]):
                 distance[0] = i-1
-            connections += 1 + self.numberOfConnections((i-1,j), distance, visitedPositions, averagePosition)
+            connections += 1 + self.numberOfConnections((i-1,j), distance, visitedPositions)
         #node = (i+1, j)
         if((i+1) < self.boardSize and self.hexBoard[i+1][j] == self.color):
             if(self.color == VALUE_BLUE and (i+1) > distance[1]):
                 distance[1] = (i+1)
-            connections += 1 + self.numberOfConnections((i+1,j), distance, visitedPositions, averagePosition)
+            connections += 1 + self.numberOfConnections((i+1,j), distance, visitedPositions)
         #node = (i, j-1)
         if((j-1) >= 0 and self.hexBoard[i][j-1] == self.color):
             if(self.color == VALUE_RED and j-1 < distance[0]):
                 distance[0] = j-1
-            connections += 1 + self.numberOfConnections((i,j-1), distance, visitedPositions, averagePosition)
+            connections += 1 + self.numberOfConnections((i,j-1), distance, visitedPositions)
         #node = (i, j+1)
         if((j+1) < self.boardSize and self.hexBoard[i][j+1] == self.color):
             if(self.color == VALUE_RED and (j+1) > distance[1]):
                 distance[1] = (j+1)
-            connections += 1 + self.numberOfConnections((i,j+1), distance, visitedPositions, averagePosition)
+            connections += 1 + self.numberOfConnections((i,j+1), distance, visitedPositions)
         #node = (i+1, j-1)
         if(j-1 >= 0 and i+1 < self.boardSize and self.hexBoard[i+1][j-1] == self.color):
             if(self.color == VALUE_BLUE and (i+1) > distance[1]):
                 distance[1] = (i+1)
             if(self.color == VALUE_RED and (j-1) < distance[0]):
                 distance[0] = j-1
-            connections += 1 + self.numberOfConnections((i+1,j-1), distance, visitedPositions, averagePosition)
+            connections += 1 + self.numberOfConnections((i+1,j-1), distance, visitedPositions)
         #node = (i-1, j+1)
         if((j+1) < self.boardSize and (i-1) >= 0 and self.hexBoard[i-1][j+1] == self.color):
             if(self.color == VALUE_BLUE and (i-1) < distance[0]):
                 distance[0] = i-1
             if(self.color == VALUE_RED and (j+1) > distance[0]):
                 distance[1] = (j+1)
-            connections += 1 + self.numberOfConnections((i-1,j+1), distance, visitedPositions, averagePosition)
+            connections += 1 + self.numberOfConnections((i-1,j+1), distance, visitedPositions)
 
         return connections
 
