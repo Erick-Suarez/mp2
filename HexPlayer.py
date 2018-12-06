@@ -95,69 +95,6 @@ class HexAgent:
             print("# Error: invalid position.")
             sys.exit(2)
 
-    def strategy_random(self, board):
-        # search for empty position
-        d_available_pos = []
-        for i in range(self.boardSize):
-            for j in range(self.boardSize):
-                if board[i][j]==VALUE_EMPTY:
-                    d_available_pos.append((i,j))
-        if len(d_available_pos)==0:
-            # END OF GAME
-            # print("# Game Over.")
-            sys.exit(0)
-        # randomized
-        random.shuffle(d_available_pos)
-        return d_available_pos[0]
-
-    def minimax(self):
-        # if(self.firstMove):
-        #     self.firstMove = False
-        #     self.secondMove = True
-        #     randVal = random.randint(0,self.boardSize-1)
-        #     if(self.color == VALUE_RED):
-        #         return (randVal, 0)
-        #     else:
-        #         if(self.hexBoard[0][randVal] != VALUE_EMPTY):
-        #             while(self.hexBoard[0][randVal] != VALUE_EMPTY):
-        #                 randVal = random.randint(0,self.boardSize-1)
-        #
-        #         return (0, randVal)
-        # elif(self.secondMove):
-        #     self.secondMove = False
-        #     randVal = random.randint(0,self.boardSize-1)
-        #     if(self.color == VALUE_RED):
-        #         if(self.hexBoard[randVal][self.boardSize-1] != VALUE_EMPTY):
-        #             while(self.hexBoard[randVal][self.boardSize-1] != VALUE_EMPTY):
-        #                 randVal = random.randint(0,self.boardSize-1)
-        #         return (randVal, self.boardSize-1)
-        #     else:
-        #         if(self.hexBoard[self.boardSize-1][randVal] != VALUE_EMPTY):
-        #             while(self.hexBoard[self.boardSize-1][randVal] != VALUE_EMPTY):
-        #                 randVal = random.randint(0,self.boardSize-1)
-        #         return (self.boardSize-1, randVal)
-        moves = []
-        if(self.firstMove):
-            self.firstMove = False
-            moves = self.getAvailableMoves(self.hexBoard)
-        else:
-            moves = self.getAdjacentMoves()
-        bestMove = moves[0]
-        bestScore = float('inf')
-        alpha = float('-inf')
-        beta = float('inf')
-        depth = 2
-
-        for move in moves:
-            self.nextState(move, self.color)
-            score = self.minValue(alpha, beta, depth)
-            if score < bestScore:
-                bestMove = move
-                bestScore = score
-            self.revertState(move)
-
-        return bestMove
-
     def print_board(self):
         print("     ",end="")
         for j in range(self.boardSize):
@@ -181,6 +118,29 @@ class HexAgent:
             for j in range(self.boardSize):
                 print("---+",end="")
             print()
+
+    def minimax(self):
+        moves = []
+        if(self.firstMove):
+            self.firstMove = False
+            moves = self.getAvailableMoves(self.hexBoard)
+        else:
+            moves = self.getAdjacentMoves()
+        bestMove = moves[0]
+        bestScore = float('inf')
+        alpha = float('-inf')
+        beta = float('inf')
+        depth = 3
+
+        for move in moves:
+            self.nextState(move, self.color)
+            score = self.minValue(alpha, beta, depth)
+            if score < bestScore:
+                bestMove = move
+                bestScore = score
+            self.revertState(move)
+
+        return bestMove
 
     # ======================================================================================
     # Private Methods
@@ -247,74 +207,86 @@ class HexAgent:
     def heuristicValue(self, currentState):
         visitedPositions = {}
         value = 0
+        averagePosition = 1;
 
         for move in self.playersMoves:
-            lowerLimit = self.boardSize
-            upperLimit = 0
-            numberOfConnectedNodes = 0
 
-            if(self.color == VALUE_RED):
-                lowerLimit = move[0]
-                upperLimit = self.boardSize-1-move[0]
-                numberOfConnectedNodes = 1
-            else:
-                lowerLimit = move[1]
-                upperLimit = self.boardSize-1-move[1]
-                numberOfConnectedNodes = 1
+            if move not in visitedPositions:
+                lowerLimit = 0
+                upperLimit = 0
+                numberOfConnectedNodes = 0
 
-            distance = [lowerLimit, upperLimit, numberOfConnectedNodes]
-            numberOfConnectedNodes += self.numberOfConnections(move, distance, visitedPositions)
-            lowerLimit = distance[0]
-            upperLimit = distance[1]
-            numberOfConnectedNodes = distance[2]
+                if(self.color == VALUE_RED):
+                    lowerLimit = move[0]
+                    upperLimit = move[0]
+                    numberOfConnectedNodes = 1
 
-            value += (self.boardSize-lowerLimit)*(self.boardSize-upperLimit)+numberOfConnectedNodes
+                else:
+                    lowerLimit = move[1]
+                    upperLimit = move[1]
+                    numberOfConnectedNodes = 1
+
+                distance = [lowerLimit, upperLimit, numberOfConnectedNodes]
+                numberOfConnectedNodes += self.numberOfConnections(move, distance, visitedPositions, averagePosition)
+                lowerLimit = distance[0]
+                upperLimit = distance[1]
+                numberOfConnectedNodes = distance[2]
+
+                penalty = 2
+                if((averagePosition*1.0)/self.boardSize > ((1.0*self.boardSize)/2) + (1.0*self.boardSize)/3 or (averagePosition*1.0)/self.boardSize < ((1.0*self.boardSize)/2) - (1.0*self.boardSize)/3):
+                    penalty = 1.0/3
+                value += (3*numberOfConnectedNodes) + (numberOfConnectedNodes * upperLimit + 1 * (1/(lowerLimit+1)) * penalty)
 
         return value
 
-    def numberOfConnections(self, move, distance, visitedPositions):
+    def numberOfConnections(self, move, distance, visitedPositions, averagePosition):
         i = move[0]
         j = move[1]
         connections = 0
         if(move in visitedPositions):
             return connections
 
+        if(self.color == VALUE_RED):
+            averagePosition += move[0]
+        else:
+            averagePosition += move[1]
+
         visitedPositions[move] = True
 
         #node = (i-1, j)
         if((i-1) >= 0 and self.hexBoard[i-1][j] == self.color):
-            if(self.color == VALUE_RED and i-1 < distance[0]):
+            if(self.color == VALUE_BLUE and i-1 < distance[0]):
                 distance[0] = i-1
-            connections += 1 + self.numberOfConnections((i-1,j), distance, visitedPositions)
+            connections += 1 + self.numberOfConnections((i-1,j), distance, visitedPositions, averagePosition)
         #node = (i+1, j)
         if((i+1) < self.boardSize and self.hexBoard[i+1][j] == self.color):
-            if(self.color == VALUE_RED and self.boardSize-1-(i+1) < distance[1]):
-                distance[1] = self.boardSize-1-(i+1)
-            connections += 1 + self.numberOfConnections((i+1,j), distance, visitedPositions)
+            if(self.color == VALUE_BLUE and (i+1) > distance[1]):
+                distance[1] = (i+1)
+            connections += 1 + self.numberOfConnections((i+1,j), distance, visitedPositions, averagePosition)
         #node = (i, j-1)
         if((j-1) >= 0 and self.hexBoard[i][j-1] == self.color):
-            if(self.color == VALUE_BLUE and j-1 < distance[0]):
+            if(self.color == VALUE_RED and j-1 < distance[0]):
                 distance[0] = j-1
-            connections += 1 + self.numberOfConnections((i,j-1), distance, visitedPositions)
+            connections += 1 + self.numberOfConnections((i,j-1), distance, visitedPositions, averagePosition)
         #node = (i, j+1)
         if((j+1) < self.boardSize and self.hexBoard[i][j+1] == self.color):
-            if(self.color == VALUE_BLUE and self.boardSize-1-(j+1) < distance[1]):
-                distance[1] = self.boardSize-1-(j+1)
-            connections += 1 + self.numberOfConnections((i,j+1), distance, visitedPositions)
+            if(self.color == VALUE_RED and (j+1) > distance[1]):
+                distance[1] = (j+1)
+            connections += 1 + self.numberOfConnections((i,j+1), distance, visitedPositions, averagePosition)
         #node = (i+1, j-1)
-        if((j-1) >= 0 and (i+1) < self.boardSize and self.hexBoard[i+1][j-1] == self.color):
-            if(self.color == VALUE_RED and self.boardSize-1-(i+1) < distance[1]):
-                distance[1] = self.boardSize-1-(i+1)
-            if(self.color == VALUE_BLUE and (j-1) < distance[0]):
+        if((j-1) >= 0 and (i+1) < self.boardSize and self.hexBoard[i+1][j-1] == self.color, averagePosition):
+            if(self.color == VALUE_BLUE and (i+1) > distance[1]):
+                distance[1] = (i+1)
+            if(self.color == VALUE_RED and (j-1) < distance[0]):
                 distance[0] = j-1
-            connections += 1 + self.numberOfConnections((i+1,j-1), distance, visitedPositions)
+            connections += 1 + self.numberOfConnections((i+1,j-1), distance, visitedPositions, averagePosition)
         #node = (i-1, j+1)
         if((j+1) < self.boardSize and (i-1) >= 0 and self.hexBoard[i-1][j+1] == self.color):
-            if(self.color == VALUE_RED and (i-1) < distance[0]):
+            if(self.color == VALUE_BLUE and (i-1) < distance[0]):
                 distance[0] = i-1
-            if(self.color == VALUE_BLUE and (j-1) < distance[0]):
-                distance[1] = self.boardSize - 1 - (j+1)
-            connections += 1 + self.numberOfConnections((i-1,j+1), distance, visitedPositions)
+            if(self.color == VALUE_RED and (j+1) > distance[0]):
+                distance[1] = (j+1)
+            connections += 1 + self.numberOfConnections((i-1,j+1), distance, visitedPositions, averagePosition)
 
         return connections
 
